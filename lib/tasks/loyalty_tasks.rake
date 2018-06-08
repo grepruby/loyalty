@@ -1,8 +1,10 @@
-desc "Explaining what the task does"
-namespace :loyalty do
-  namespace :db do
-    desc 'Create the loyalty database'
-    task create: :environment do
+# Loyalty engine specific rake tasks
+class LoyaltyDatabase
+  MIGRATION_FILES_PATH = '../../db/migrate'.freeze
+  SCHEMA_FILE = 'loyalty_schema.rb'.freeze
+
+  class << self
+    def create
       config = LOYALTY_DATABASE[Rails.env]
 
       # Database is null because it hasn't been created yet.
@@ -10,52 +12,81 @@ namespace :loyalty do
       ActiveRecord::Base.connection.create_database(config['database'], config)
     end
 
-    desc 'drop the loyalty database'
-    task drop: :environment do
-      ActiveRecord::Base.connection.drop_database(LOYALTY_DATABASE[Rails.env]['database'])
+    def drop
+      ActiveRecord::Base.connection
+                        .drop_database(LOYALTY_DATABASE[Rails.env]['database'])
     end
 
-    desc 'Migrates the loyalty_* database'
-    task migrate: :environment do
+    def migrate
       with_engine_connection do
-        ActiveRecord::MigrationContext.new(File.expand_path("../../../db/migrate", __FILE__)).migrate
+        ActiveRecord::MigrationContext
+          .new(File.expand_path(MIGRATION_FILES_PATH, __dir__))
+          .migrate
       end
-      Rake::Task['loyalty:db:schema:dump'].invoke
+      schema_dump
     end
 
-    desc 'Rollback the loyalty_* database'
-    task rollback: :environment do
+    def rollback
       with_engine_connection do
-        ActiveRecord::MigrationContext.new(File.expand_path("../../../db/migrate", __FILE__)).rollback
+        ActiveRecord::MigrationContext
+          .new(File.expand_path(MIGRATION_FILES_PATH, __dir__))
+          .rollback
       end
-      Rake::Task['loyalty:db:schema:dump'].invoke
+      schema_dump
     end
 
-    desc "Dumps loyalty schema"
-    task :'schema:dump' => :environment do
-      require 'active_record/schema_dumper'
-
+    def schema_dump
       with_engine_connection do
-        File.open(File.join(Rails.root, 'db', 'loyalty_schema.rb'), 'w') do |file|
+        File.open(File.join(Rails.root, 'db', SCHEMA_FILE), 'w') do |file|
           ActiveRecord::SchemaDumper.dump ActiveRecord::Base.connection, file
         end
       end
     end
 
-    desc 'Loads loyality schema'
-    task :'schema:load' => :environment do
+    def schema_load
       with_engine_connection do
-        load File.join(Rails.root, 'db', 'loyalty_schema.rb')
+        load File.join(Rails.root, 'db', SCHEMA_FILE)
       end
+    end
+
+    private
+
+    def with_engine_connection
+      original = ActiveRecord::Base.remove_connection
+      ActiveRecord::Base.establish_connection LOYALTY_DATABASE[Rails.env]
+      yield
+    ensure
+      ActiveRecord::Base.establish_connection original
     end
   end
 end
 
-# Hack to temporarily connect AR::Base to engine.
-def with_engine_connection
-  original = ActiveRecord::Base.remove_connection
-  ActiveRecord::Base.establish_connection LOYALTY_DATABASE[Rails.env]
-  yield
-ensure
-  ActiveRecord::Base.establish_connection original
+desc 'Explaining what the task does'
+namespace :loyalty do
+  namespace :db do
+    desc 'Create the loyalty database'
+    task create: :environment do
+      LoyaltyDatabase.create
+    end
+
+    desc 'drop the loyalty database'
+    task drop: :environment do
+      LoyaltyDatabase.drop
+    end
+
+    desc 'Migrates the loyalty_* database'
+    task migrate: :environment do
+      LoyaltyDatabase.migrate
+    end
+
+    desc 'Rollback the loyalty_* database'
+    task rollback: :environment do
+      LoyaltyDatabase.rollback
+    end
+
+    desc 'Loads loyality schema'
+    task :'schema:load' => :environment do
+      LoyaltyDatabase.schema_load
+    end
+  end
 end
