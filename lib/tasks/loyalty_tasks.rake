@@ -3,7 +3,7 @@ namespace :loyalty do
   namespace :db do
     desc 'Create the loyalty database'
     task create: :environment do
-      config = ActiveRecord::Base.configurations["loyalty_#{Rails.env}"]
+      config = LOYALTY_DATABASE[Rails.env]
 
       # Database is null because it hasn't been created yet.
       ActiveRecord::Base.establish_connection(config.merge('database' => nil))
@@ -12,7 +12,7 @@ namespace :loyalty do
 
     desc 'drop the loyalty database'
     task drop: :environment do
-      ActiveRecord::Base.connection.drop_database("loyalty_#{Rails.env}")
+      ActiveRecord::Base.connection.drop_database(LOYALTY_DATABASE[Rails.env]['database'])
     end
 
     desc 'Migrates the loyalty_* database'
@@ -46,7 +46,7 @@ end
 # Hack to temporarily connect AR::Base to your engine.
 def with_engine_connection
   original = ActiveRecord::Base.remove_connection
-  ActiveRecord::Base.establish_connection "loyalty_#{Rails.env}".to_sym
+  ActiveRecord::Base.establish_connection LOYALTY_DATABASE[Rails.env]
   yield
 ensure
   ActiveRecord::Base.establish_connection original

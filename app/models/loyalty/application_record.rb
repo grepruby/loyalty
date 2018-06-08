@@ -1,6 +1,6 @@
 module Loyalty
   class ApplicationRecord < ActiveRecord::Base
     self.abstract_class = true
-    establish_connection :"loyalty_#{Rails.env}"
+    establish_connection LOYALTY_DATABASE[Rails.env]
   end
 end

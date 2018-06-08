@@ -1,0 +1,17 @@
+
+loyalty_default: &loyalty_default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+development:
+  <<: *loyalty_default
+  database: loyalty_development
+  host: localhost
+  username: postgres
+  password: postgres
+
+
+production:
+  <<: *loyalty_default
+  url: <%= ENV['LOYALTY_DB_URL'] %>
