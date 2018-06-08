@@ -18,7 +18,7 @@ namespace :loyalty do
     desc 'Migrates the loyalty_* database'
     task :migrate => :environment do
       with_engine_connection do
-        ActiveRecord::Migrator.migrate(File.expand_path("../../../db/migrate", __FILE__), ENV['VERSION'].try(:to_i))
+        ActiveRecord::MigrationContext.new(File.expand_path("../../../db/migrate", __FILE__)).migrate
       end
       Rake::Task['loyalty:db:schema:dump'].invoke
     end
@@ -26,14 +26,14 @@ namespace :loyalty do
     desc "Dumps loyalty schema"
     task :'schema:dump' => :environment do
       require 'active_record/schema_dumper'
- 
+
       with_engine_connection do
         File.open(File.join(Rails.root, 'db', 'loyalty_schema.rb'), 'w') do |file|
           ActiveRecord::SchemaDumper.dump ActiveRecord::Base.connection, file
         end
       end
     end
-    
+
     desc 'Loads loyality schema'
     task :'schema:load' => :environment do
       with_engine_connection do
