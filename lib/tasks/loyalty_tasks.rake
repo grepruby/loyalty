@@ -16,9 +16,17 @@ namespace :loyalty do
     end
 
     desc 'Migrates the loyalty_* database'
-    task :migrate => :environment do
+    task migrate: :environment do
       with_engine_connection do
         ActiveRecord::MigrationContext.new(File.expand_path("../../../db/migrate", __FILE__)).migrate
+      end
+      Rake::Task['loyalty:db:schema:dump'].invoke
+    end
+
+    desc 'Rollback the loyalty_* database'
+    task rollback: :environment do
+      with_engine_connection do
+        ActiveRecord::MigrationContext.new(File.expand_path("../../../db/migrate", __FILE__)).rollback
       end
       Rake::Task['loyalty:db:schema:dump'].invoke
     end
@@ -43,7 +51,7 @@ namespace :loyalty do
   end
 end
 
-# Hack to temporarily connect AR::Base to your engine.
+# Hack to temporarily connect AR::Base to engine.
 def with_engine_connection
   original = ActiveRecord::Base.remove_connection
   ActiveRecord::Base.establish_connection LOYALTY_DATABASE[Rails.env]
