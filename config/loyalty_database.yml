@@ -11,6 +11,13 @@ development:
   username: postgres
   password: postgres
 
+test:
+  <<: *loyalty_default
+  database: loyalty_test
+  host: localhost
+  username: postgres
+  password: postgres
+
 
 production:
   <<: *loyalty_default
